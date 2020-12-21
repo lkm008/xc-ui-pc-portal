@@ -186,32 +186,95 @@
       }
     },
     async asyncData({ store, route }) {
-      return {
-        courselist: {},
-        first_category:{},
-        second_category:{},
-        mt:'',
-        st:'',
-        grade:'',
-        keyword:'',
-        total:0,
-        imgUrl:config.imgUrl
+//       console.log(route.query)
+
+      let page = route.query.page;
+       if(!page){
+           page = 1;
+       }
+//       console.log("page="+page)
+      //搜索课程
+      let course_data = await courseApi.search_course(page,12,route.query)
+      console.log(course_data)
+      //查询分类
+      let category_data = await courseApi.sysres_category()
+//      console.log(category_data)
+//      console.log(course_data.hits.hits)
+
+      if (course_data && course_data.hits &&  course_data.hits.hits && category_data) {
+        //全部分类
+        let category = category_data.category
+        let first_category = category[0].children
+        let keywords = ''
+        let second_category=[]
+        let mt=''
+        let st=''
+        let grade=''
+        let keyword=''
+        let total = course_data.hits.total
+        if( route.query.mt){
+          mt = route.query.mt
+        }
+        if( route.query.st){
+          st = route.query.st
+        }
+        if( route.query.grade){
+          grade = route.query.grade
+        }
+        if( route.query.keyword){
+          keyword = route.query.keyword
+        }
+        //遍历一级分类
+        for(var i in first_category){
+          keywords+=first_category[i].name+' '
+          if(mt!=''&& mt == first_category[i].id){
+            //取出二级分类
+            second_category = first_category[i].children;
+            // console.log(second_category)
+            break;
+          }
+        }
+        //console.log(category[0].children)
+        return {
+          courselist: course_data.hits.hits,
+          first_category: first_category,
+          keywords:keywords,
+          second_category: second_category,
+          mt:mt,
+          st:st,
+          grade:grade,
+          keyword:keyword,
+          total:total,
+          imgUrl:config.imgUrl
+        }
+      } else {
+        return {
+          courselist: {},
+          first_category:{},
+          second_category:{},
+          mt:'',
+          st:'',
+          grade:'',
+          keyword:'',
+          total:0,
+          imgUrl:config.imgUrl
+        }
+      }
+
+    },
+//自定义过虑器
+    filters: {
+      money: function(value) {
+        return Math.floor(value);
       }
     },
     data() {
       return {
-        courselist: {},
-        first_category:{},
-        second_category:{},
-        mt:'',
-        st:'',
-        grade:'',
-        keyword:'',
-        imgUrl:config.imgUrl,
         total:0,//总记录数
         page:1,//页码
-        page_size:12//每页显示个数
-      }
+        page_size:12,//每页显示个数
+        keywords:''//head中的关键字
+      };
     },
     watch:{//路由发生变化立即搜索search表示search方法
       '$route':'search'
@@ -219,12 +282,67 @@
     methods: {
       //分页触发
       handleCurrentChange(page) {
+        this.page = page
+        let query = Object.assign({}, this.$route.query);
+        query.page = page
+        let querys = querystring.stringify(query)
+//        console.log(querys)
+        this.$router.push(`/course/search?`+querys)
       },
-      //搜索方法
-      search(){
-        //刷新当前页面
-        window.location.reload();
+      search(){//搜索方法
+//        console.log("search....")
+//        console.log(this.$route.query)
+        courseApi.sysres_category().then((category_data)=>{// 搜索分类
+          let category = category_data.category
+          let first_category = category[0].children
+          let second_category=[]
+          let mt=''
+          let st=''
+          let grade=''
+          let keyword = ''
+
+          if( this.$route.query.mt){
+            mt = this.$route.query.mt
+          }
+          if( this.$route.query.st){
+            st = this.$route.query.st
+          }
+          if( this.$route.query.grade){
+            grade = this.$route.query.grade
+          }
+          if(  this.$route.query.keyword){
+            keyword =  this.$route.query.keyword
+          }
+          if(mt!=''){
+            //取出二级分类
+            for(var i in first_category){
+              if(mt == first_category[i].id){
+                second_category = first_category[i].children;
+                // console.log(second_category)
+                break;
+              }
+            }
+          }
+          this.first_category=first_category
+          this.second_category= second_category
+          this.mt=mt
+          this.st=st
+          this.grade =grade
+          this.keyword = keyword
+
+        })
+        courseApi.search_course(this.page,this.page_size,this.$route.query).then((course_data) => {
+          //console.log(course_data.hits.hits)
+          this.courselist=course_data.hits.hits
+          this.total = course_data.hits.total
+
+        })
+
+
       }
+    },
+    mounted() {
+      this.search()
     }
   }
 </script>
