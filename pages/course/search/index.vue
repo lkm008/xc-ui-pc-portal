@@ -80,9 +80,9 @@
               </ul>
             </div>
             <div class="tab-content">
-              <div class="content-list">
+             <!-- <div class="content-list">
 
-                <!--<div class="recom-item">
+                &lt;!&ndash;<div class="recom-item">
                   <a href="/course/detail?id=1010" target="_blank">
                     <p><img src="/img/widget-demo1.png" width="100%" alt=""><span class="lab">HOT</span></p>
                     <ul>
@@ -90,10 +90,10 @@
                       <li><span>高级</span> <em> · </em> 1125人在学习</li>
                     </ul>
                   </a>
-                </div>-->
+                </div>&ndash;&gt;
                 <div class="recom-item" v-for="(course, index) in courselist">
                   <a :href="'/course/detail/'+course._source.id+'.html'" target="_blank">
-                  <!--<a href="/course/detail/test.html" target="_blank">-->
+                  &lt;!&ndash;<a href="/course/detail/test.html" target="_blank">&ndash;&gt;
                     <div v-if="course._source.pic">
                       <p><img :src="imgUrl+'/'+course._source.pic" width="100%" alt=""></p>
                     </div>
@@ -102,29 +102,55 @@
                     </div>
                     <ul >
                       <li class="course_title">{{course._source.name}}</li>
-                      <li style="float: left"><span v-if="course._source.charge == '203001'">免费</span><span v-if="course._source.charge == '203002'">￥{{course._source.price | money}}</span>
-                        <!-- <em> · </em>-->&nbsp;&nbsp;<!--<em>1125人在学习</em>--></li>
+                      <li style="float: left">
+                        <span v-if="course._source.charge == '203001'">免费</span>
+                        <span v-if="course._source.charge == '203002'">￥{{course._source.price | money}}</span>
+                        &lt;!&ndash; <em> · </em>&ndash;&gt;&nbsp;&nbsp;&lt;!&ndash;<em>1125人在学习</em>&ndash;&gt;
+                      </li>
                     </ul>
-                  <!--</a>-->
+                  &lt;!&ndash;</a>&ndash;&gt;
                   </a>
                 </div>
 
                 <li class="clearfix"></li>
+              </div>-->
+
+
+              <div class="content-list">
+                <div class="recom-item" v-for="(course, index) in courselist">
+                  <nuxt-link :to="'/course/detail/'+course.id+'.html'" target="_blank">
+                    <div v-if="course.pic">
+                      <p><img :src="imgUrl+'/'+course.pic" width="100%" alt=""></p>
+                    </div>
+                    <div v-else>
+                      <p><img src="/img/widget-demo1.png" width="100%" alt=""></p>
+                    </div>
+                    <ul >
+                      <li class="course_title"><span v-html="course.name"></span></li>
+                      <li style="float: left">
+                        <span v-if="course.charge == '203001'">免费</span>
+                        <span v-if="course.charge == '203002'">￥{{course.price | money}}</span>
+                        <!-- <em> · </em>-->&nbsp;&nbsp;<!--<em>1125人在学习</em>--></li>
+                    </ul>
+                  </nuxt-link>
+                </div>
+                <li class="clearfix"></li>
               </div>
               <div class="clearfix"></div>
             </div>
-          </div>
-
-          <div style="text-align: center">
-            <el-pagination
-              background
-              layout="prev, pager, next"
-              @current-change="handleCurrentChange"
-              :total="total"
-              :page-size="page_size"
-              prev-text="上一页"
-              next-text="下一页">
-            </el-pagination>
+            <!--分页组件-->
+            <div style="text-align: center">
+              <el-pagination
+                background
+                layout="prev, pager, next"
+                @current-change="handleCurrentChange"
+                :total="total"
+                :page-size="page_size"
+                :current-page="page"
+                prev-text="上一页"
+                next-text="下一页">
+              </el-pagination>
+            </div>
           </div>
         </div>
         <div class="col-md-3 list-row-rit">
@@ -186,16 +212,69 @@
       }
     },
     async asyncData({ store, route }) {
-      return {
-        courselist: {},
-        first_category:{},
-        second_category:{},
-        mt:'',
-        st:'',
-        grade:'',
-        keyword:'',
-        total:0,
-        imgUrl:config.imgUrl
+      //搜索课程
+      let page = route.query.page;
+      let page_size=  route.query.page_size;
+      console.log(page)
+      if(!page){
+        page = 1;
+      }else{
+        page = Number.parseInt(page)
+      }
+      if(!page_size){
+        page_size = 4;
+      }else{
+        page_size = Number.parseInt(page_size)
+      }
+      console.log(page);
+      //请求搜索服务，搜索服务
+      let course_data = await courseApi.search_course(page,page_size,route.query);
+      console.log(course_data)
+      if (course_data &&　course_data.queryResult ) {
+        let keywords = ''
+        let mt=''
+        let st=''
+        let grade=''
+        let keyword=''
+        let total = course_data.queryResult.total
+        if( route.query.mt){
+          mt = route.query.mt
+        }
+        if( route.query.st){
+          st = route.query.st
+        }
+        if( route.query.grade){
+          grade = route.query.grade
+        }
+        if( route.query.keyword){
+          keyword = route.query.keyword
+        }
+        return {
+          courselist: course_data.queryResult.list,//课程列表
+          keywords:keywords,
+          mt:mt,
+          st:st,
+          grade:grade,
+          keyword:keyword,
+          page:page,
+          page_size: page_size,
+          total:total,
+          imgUrl:config.imgUrl
+        }
+      }else{
+        return {
+          courselist: {},
+          first_category:{},
+          second_category:{},
+          mt:'',
+          st:'',
+          grade:'',
+          keyword:'',
+          page:page,
+          page_size: page_size,
+          total:0,
+          imgUrl:config.imgUrl
+        }
       }
     },
     data() {
@@ -219,6 +298,10 @@
     methods: {
       //分页触发
       handleCurrentChange(page) {
+        this.page = page
+        this.$route.query.page = page
+        let querys = querystring.stringify(this.$route.query)
+        window.location = '/course/search?'+querys;
       },
       //搜索方法
       search(){
