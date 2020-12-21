@@ -80,42 +80,6 @@
               </ul>
             </div>
             <div class="tab-content">
-             <!-- <div class="content-list">
-
-                &lt;!&ndash;<div class="recom-item">
-                  <a href="/course/detail?id=1010" target="_blank">
-                    <p><img src="/img/widget-demo1.png" width="100%" alt=""><span class="lab">HOT</span></p>
-                    <ul>
-                      <li>Think PHP 5.0 博客系统实战项目演练 </li>
-                      <li><span>高级</span> <em> · </em> 1125人在学习</li>
-                    </ul>
-                  </a>
-                </div>&ndash;&gt;
-                <div class="recom-item" v-for="(course, index) in courselist">
-                  <a :href="'/course/detail/'+course._source.id+'.html'" target="_blank">
-                  &lt;!&ndash;<a href="/course/detail/test.html" target="_blank">&ndash;&gt;
-                    <div v-if="course._source.pic">
-                      <p><img :src="imgUrl+'/'+course._source.pic" width="100%" alt=""></p>
-                    </div>
-                    <div v-else>
-                      <p><img src="/img/widget-demo1.png" width="100%" alt=""></p>
-                    </div>
-                    <ul >
-                      <li class="course_title">{{course._source.name}}</li>
-                      <li style="float: left">
-                        <span v-if="course._source.charge == '203001'">免费</span>
-                        <span v-if="course._source.charge == '203002'">￥{{course._source.price | money}}</span>
-                        &lt;!&ndash; <em> · </em>&ndash;&gt;&nbsp;&nbsp;&lt;!&ndash;<em>1125人在学习</em>&ndash;&gt;
-                      </li>
-                    </ul>
-                  &lt;!&ndash;</a>&ndash;&gt;
-                  </a>
-                </div>
-
-                <li class="clearfix"></li>
-              </div>-->
-
-
               <div class="content-list">
                 <div class="recom-item" v-for="(course, index) in courselist">
                   <nuxt-link :to="'/course/detail/'+course.id+'.html'" target="_blank">
@@ -230,7 +194,19 @@
       //请求搜索服务，搜索服务
       let course_data = await courseApi.search_course(page,page_size,route.query);
       console.log(course_data)
+      //##################################################
+      //查询分类
+      let category_data = await courseApi.sysres_category()
+
+      //##################################################
+
       if (course_data &&　course_data.queryResult ) {
+
+        //全部分类
+        let category = category_data.category//分部分类
+        let first_category = category[0].children//一级分类
+        let second_category=[]//二级分类
+
         let keywords = ''
         let mt=''
         let st=''
@@ -249,8 +225,20 @@
         if( route.query.keyword){
           keyword = route.query.keyword
         }
+        //遍历一级分类
+        for(var i in first_category){
+          keywords+=first_category[i].name+' '
+          if(mt!=''&& mt == first_category[i].id){
+            //取出二级分类
+            second_category = first_category[i].children;
+            // console.log(second_category)
+            break;
+          }
+        }
         return {
           courselist: course_data.queryResult.list,//课程列表
+          first_category: first_category,
+          second_category: second_category,
           keywords:keywords,
           mt:mt,
           st:st,
@@ -338,5 +326,7 @@
     width: 160px;
     overflow:hidden;
   }
-
+  .eslight{
+    color: red;
+  }
 </style>

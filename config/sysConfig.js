@@ -3,7 +3,7 @@ var sysConfig = {
     staticURL: '/static',
     backApiURL: 'http://www.xuecheng.com/openapi',//服务端请求
     backStaticURL: 'http://www.xuecheng.com/static',
-    imgUrl:'http://img.xuecheng.com',
+    imgUrl:'http://img.xuecheng.com:81',
     videoUrl:'http://video.xuecheng.com'
 }
 
